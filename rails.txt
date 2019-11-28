@@ -1,0 +1,561 @@
+MAKING NEW USER SUDO rails
+adduser rails
+adduser rails sudo
+su rails  o ssh rails@192.168.1.18
+
+
+SSH ACCESES
+apt-get install ssh
+nano /etc/ssh/sshd_config
+PermitRootLogin yes
+
+
+INSTALLING RUBY WITH RBENV user rails
+sudo apt-get install curl
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo add-apt-repository ppa:chris-lea/redis-server
+sudo apt-get update
+sudo apt-get install git-core curl zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev libcurl4-openssl-dev software-properties-common libffi-dev dirmngr gnupg apt-transport-https ca-certificates redis-server redis-tools nodejs yarn
+
+git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+echo 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"' >> ~/.bashrc
+git clone https://github.com/rbenv/rbenv-vars.git ~/.rbenv/plugins/rbenv-vars
+exec $SHELL
+rbenv install 2.6.5
+rbenv global 2.6.5
+ruby -v
+
+
+
+INSTALLING BUNDLER user rails
+gem install bundler
+bundle -v
+If it tells you bundle not found, run rbenv rehash and try again.
+
+
+
+Installing NGINX  
+
+sudo apt-get install nginx
+
+sudo nano /etc/nginx/sites-enabled/default
+
+server {
+listen 80;
+listen [::]:80;
+server_name _;
+root /home/rails/myapp/public;
+passenger_enabled on;
+passenger_app_env production;
+location /cable {
+passenger_app_group_name myapp_websocket;
+passenger_force_max_concurrent_requests_per_process 0;
+}
+# Allow uploads up to 100MB in size
+client_max_body_size 100m;
+location ~ ^/(assets|packs) {
+expires max;
+gzip_static on;
+}
+}
+
+sudo service nginx reload
+
+
+
+MySQL 
+sudo apt-get install mysql-server mysql-client libmysqlclient-dev
+sudo mysql_secure_installation
+sudo mysql  -p
+
+create database railsdb;			
+"CREATE USER IF NOT EXISTS 'railsuser'@'localhost' IDENTIFIED BY 'railspas';
+"			
+GRANT ALL PRIVILEGES ON railsdb.* TO 'railsuser'@'localhost';
+GRANT ALL ON BD.* TO railsuser@localhost IDENTIFIED BY "railspas";			
+mysql -u railsuser -p			
+
+others cmd mysql
+show databases;
+select User from mysql.user;
+SHOW GRANTS FOR rails@localhost;
+use [db name];
+show tables;
+drop database dbname;		
+
+
+
+INSTALL RAILS AND MAKE MYAPP
+gem install rails
+
+rails new rails-mysql-crud -d mysql					
+rails generate controller contact new create index show edit update delete destroy					
+rails generate controller phones new create index show edit update delete destroy					
+rails generate controller emails new create index show edit update delete destroy					
+
+rails generate model contact
+rails generate model phone
+rails generate model email
+
+CONFIG DB CONECTION
+nano /config/database.yml
+	
+CONFIG DNS ACCESS
+"config/enviroments/development.rb										
+"
+"config.hosts << ""domain.org""									
+"
+
+BOOTSTRAP 
+
+yarn add bootstrap@4.3.1 jquery popper.js
+
+appbootstrap/config/webpack/environment.js
+"const { environment } = require('@rails/webpacker')
+const webpack = require(""webpack"")
+
+environment.plugins.prepend(""Provide"", new webpack.ProvidePlugin({
+    $: 'jquery',
+    jQuery: 'jquery',
+    Popper: ['popper.js','default']
+  }))
+
+module.exports = environment"
+
+appbootstrap/app/javascript/packs/applications.js
+"require(""@rails/ujs"").start()
+require(""turbolinks"").start()
+require(""@rails/activestorage"").start()
+require(""channels"")
+
+import ""bootstrap""
+import ""../stylesheets/application""
+
+document.addEventListener(""turbolinks:load"",() =>{
+    $('[data-toggle=""tooltip""]').tooltip()
+    $('[data-toggle=""popover""]').tooltip()
+})
+                          
+                          
+                       "
+
+mkdir appbootstrap/app/javascript/stylesheets
+> appbootstrap/app/javascript/stylesheets/application.scss
+@import "~bootstrap/scss/bootstrap";
+
+
+appbootstrap/app/views/layouts/application.html.erb
+"<!DOCTYPE html>
+<html>
+  <head>
+    <title>bootstrap/title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+    <%= stylesheet_pack_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+    <%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
+  </head>
+  <body>    
+     <button type=""button"" class=""btn btn-secondary"" data-toggle=""tooltip"" data-placement=""top"" title=""Tooltip on top"">
+      Tooltip on top
+     </button>          
+    <%= yield %>
+  </body>
+</html>"
+
+appbootstrap/config/routes.rb
+"Rails.application.routes.draw do
+ root to:'main#index'  
+end
+"
+
+
+ROUTES
+nano /config/routes.rb
+"Rails.application.routes.draw do
+  root 'contacts#index'
+  match ':controller(/:action(/:id))', :via => [:get, :post]
+  # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+end"
+
+MIGRATE DB MYSQL
+
+db/migrate/20161113143332_create_contacts.rb
+"class CreateContacts < ActiveRecord::Migration[6.0]
+  def change
+    create_table :contacts do |t|
+    t.string :nombre, :null => false
+    t.string :apellidos, :null => false
+    t.string :calle
+    t.string :poblacion
+    t.string :provincia
+    t.string :pais
+    t.timestamps
+    end
+  end
+end"
+
+
+db/migrate/20161113143340_create_phones.rb
+"class CreatePhones < ActiveRecord::Migration[6.0]
+  def change
+    create_table :phones do |t|
+      t.string :telefono
+      t.string :contacts_id
+      t.timestamps
+    end
+  end
+end"
+
+db/migrate/20161113143345_create_emails.rb
+"class CreateEmails < ActiveRecord::Migration[6.0]
+  def change
+    create_table :emails do |t|
+      t.string :email
+      t.string :contacts_id
+      t.timestamps
+    end
+  end
+end"
+
+GENERAR DB
+rake db:migrate
+
+MYSQL CMD  para comprobar la creacion en la db mysql
+
+mysql> use dbname;
+mysql> show tables;
+mysql> desc tablename
+
+
+
+mysql> INSERT INTO contacts  VALUES('1', 'contact-1', '1000-01-01 00:00:00');
+mysql> SELECT * from contacts;
+UPDATE contacts SET calle='av-iecla' WHERE id='10';
+
+Establecemos las relaciones entre tablas
+
+/app/model/contact.rb
+"class Contact < ApplicationRecord
+has_many :phones
+has_many :emails
+end"
+
+
+/app/model/phone.rb
+"class Phone < ApplicationRecord
+belongs_to :contact
+end"
+
+
+/app/model/email.rb
+"class Email < ApplicationRecord
+belongs_to :contact
+end"
+
+
+
+app/config/routes.rb
+"Rails.application.routes.draw do
+  root 'contacts#index'
+  match ':controller(/:action(/:id))', :via => [:get, :post]
+end"
+
+
+
+app/views/contact/index.html.erb
+"<h1>Lista de contactos</h1>
+<p><%= link_to(""Añadir contacto"", {:controller => 'contact', :action => 'new'}, data: { turbolinks: false } , :class => ""btn btn-success"" ) %></p>
+
+<table class=""table table-striped"" summary=""Contact List"">
+  <tr class=""header"">
+    <th>
+      Nombre
+    </th>      
+    <th>
+      Apellidos
+    </th>
+    <th>
+      Calle
+    </th>
+    <th>
+      Poblacion
+    </th>    
+    <th>
+      Provincia
+    </th>
+    <th>
+      Pais
+    </th>
+    
+    <th>
+      Acciones
+    </th>
+  </tr>
+  <% @contact.each do |t| %>
+  <tr>
+
+    <td>
+      <%= t.nombre %>
+      </td>
+    <td>
+      <%= t.apellidos %>
+    </td>    
+     <td>
+      <%= t.calle %>
+    </td>     
+    <td>
+      <%= t.poblacion %>
+    </td>      
+     <td>
+      <%= t.provincia %>
+    </td>
+     <td>
+      <%= t.pais %>
+    </td>
+
+    <td>
+      <%= link_to(""Detalles"", {:action => 'show', :id => t.id}, data: { turbolinks: false }, :class => ""btn btn-primary"") %>
+      <%= link_to(""Editar"", {:action => 'edit', :id => t.id}, data: { turbolinks: false }, :class => ""btn btn-primary"") %>
+      <%= link_to(""Borrar"", {:action => 'delete', :id => t.id}, data: { turbolinks: false }, :class => ""btn btn-primary"") %>
+    </td>
+  </tr>
+  <% end %>
+</table>"
+
+
+
+app/views/contact/new.html.erb
+"<h1>Contact#new</h1>
+<h1>Añadir Contacto</h1>
+<table class=""table table-striped"" summary=""Add Task"" >
+    <tr class=""header"">
+        <th></th>
+        <th>Contenido</th>
+    </tr>
+            <%= form_for(:contact, :url => {:action => 'create', :id => @contact.id}) do |f| %>    
+ 
+    <tr>
+            <th>Nombre</th>
+            <td><%= f.text_field(:nombre) %></td>
+    </tr> 
+ 
+    <tr>
+            <th>Apellidos</th>
+            <td><%= f.text_field(:apellidos) %></td>
+    </tr>
+    
+    <tr>
+            <th>Calle</th>
+            <td><%= f.text_field(:calle) %></td>
+    </tr>
+        
+     <tr>
+            <th>Poblacion</th>
+            <td><%= f.text_field(:poblacion) %></td>
+    </tr>
+     
+     
+    <tr>
+            <th>Provincia</th>
+            <td><%= f.text_field(:provincia) %></td>
+    </tr>
+     
+    <tr>
+            <th>Pais</th>
+            <td><%= f.text_field(:pais) %></td>
+    </tr>    
+
+</table>
+        <%= submit_tag(""Añadir"", :class => ""btn btn-primary"") %>
+        <% end %>"
+
+
+
+app/controllers/contact_controller.rb
+"class ContactController < ApplicationController
+  def new
+    @contact = Contact.new
+  end
+
+  def create
+    @contact = Contact.new(contact_params)
+    @contact.save
+    redirect_to(:action => 'index')
+   end
+  
+  def index
+    @contact = Contact.all
+  end
+
+  def show
+  end
+
+  def edit
+     @contact = Contact.find(params[:id])
+  end
+
+  def update
+    @contact = Contact.find(params[:id])
+    @contact.update_attributes(contact_params)
+    redirect_to(:action =>'index')
+  end
+
+
+  def delete
+    @contact = Contact.find(params[:id])
+  end
+
+
+  def destroy
+    @contact = Contact.find(params[:id])
+   # @contact.destroy(contact_params)
+   # @contact = Task.find(params[:id])
+   # @phone = Action.where(contact_id: @contact)
+   # @phone.each do |t|
+   #   t.destroy
+   # @email = Action.where(contact_id: @contact)
+   # @email.each do |t|
+   #   t.destroy
+   #
+    @contact.destroy
+    redirect_to(:action => 'index')
+  end
+
+  private
+    def contact_params
+      params.require(:contact).permit(:id,:nombre, :apellidos, :calle, :poblacion, :provincia, :pais)
+    end
+
+
+end
+
+
+end"
+
+app/views/contacts/update.html.erb
+"<h1>Contact#update</h1>
+<p>Find me in app/views/contact/update.html.erb</p>
+
+<table class=""table table-striped"" summary=""Add Task"" >
+    <tr class=""header"">
+        <th></th>
+        <th>Contenido</th>
+    </tr>
+            <%= form_for(:contact, :url => {:action => 'update', :id => @contact.id}) do |f| %>    
+ 
+    <tr>
+            <th>Nombre</th>
+            <td><%= f.text_field(:nombre) %></td>
+    </tr>    
+ 
+    <tr>
+            <th>Apellidos</th>
+            <td><%= f.text_field(:apellidos) %></td>
+    </tr>
+
+    <tr>
+            <th>Calle</th>
+            <td><%= f.text_field(:calle) %></td>
+    </tr>
+        
+     <tr>
+            <th>Poblacion</th>
+            <td><%= f.text_field(:poblacion) %></td>
+    </tr>
+     
+     
+     <tr>
+            <th>Provincia</th>
+            <td><%= f.text_field(:provincia) %></td>
+    </tr>
+     
+     <tr>
+            <th>Pais</th>
+            <td><%= f.text_field(:pais) %></td>
+    </tr>    
+
+</table>
+        <%= submit_tag(""Añadir"", :class => ""btn btn-primary"") %>
+        <% end %>
+"
+
+app/views/contact/edit.html.erb
+"<h1>Contact#edit</h1>
+<p>Find me in app/views/contact/edit.html.erb</p>
+
+<h1>Editar Contacto</h1>
+<table class=""table table-striped"" summary=""Add Task"" >
+    <tr class=""header"">
+        <th></th>
+        <th>Contenido</th>
+    </tr>
+    
+    <%= form_for(:contact, :url => {:action => 'update', :id => @contact.id}) do |f| %>
+ 
+    <tr>
+            <th>Nombre</th>
+            <td><%= f.text_field(:nombre) %></td>
+    </tr>
+    
+    <tr>
+            <th>Apellidos</th>
+            <td><%= f.text_field(:apellidos) %></td>
+    </tr>
+    
+    <tr>
+            <th>Calle</th>
+            <td><%= f.text_field(:calle) %></td>
+    </tr>
+        
+    <tr>
+            <th>Poblacion</th>
+            <td><%= f.text_field(:poblacion) %></td>
+    </tr>     
+     
+    <tr>
+            <th>Provincia</th>
+            <td><%= f.text_field(:provincia) %></td>
+    </tr>
+     
+     <tr>
+            <th>Pais</th>
+            <td><%= f.text_field(:pais) %></td>
+    </tr>  
+    
+</table>
+        <%= submit_tag(""Editar"", :class => ""btn btn-primary"") %>
+        <% end %>"
+
+app/views/contact/show.html.erb
+"<div class=""container"">        
+        <h1>CONTACTO</h1>   
+       
+            <div>   
+              <label><h2>Nombre</h2></label>   
+              <h3> <%= @contact.nombre %> </h3>  
+            </div>   
+  
+            <div>   
+              <label><h2>Apellido</h2></label>   
+             <h3> <%= @contact.apellidos %>  </h3> 
+            </div>   
+            
+            <div>   
+              <label><h2>Calle</h2></label>   
+            <h3>  <%= @contact.calle %></h3>   
+            </div>   
+         
+      <div>   
+        <%= link_to 'Back', { controller: 'contact', action: 'index'} %>   
+      </div>   
+</div>  "
+
+
+
+
